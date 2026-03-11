@@ -17,7 +17,7 @@
             
             // 1. Añadimos /query y 2. Ponemos '${id}' entre comillas simples por ser TEXTO
             const queryUrl = `${serviceURL}/query?where=Index_ok='${id}'&outFields=*&f=pjson`;
-
+            
             fetch(queryUrl)
                 .then(res => res.json())
                 .then(response => {
@@ -27,38 +27,52 @@
                     }
 
                     const attrs = response.features[0].attributes;
+
+                    // ... dentro del fetch, después de obtener 'attrs' ...
                     
-                    // Tu lista de exclusión (Asegúrate de que no falte ninguno)
                     const excluir = ['FID','Age','Altitude','Aspect','Build','Build_Vol','Clay_0cm','Climatic_K','Curvature','Dams','Db_0cm','Den_Pob','Dts_r_365','DTS_r_90','DTS_st_365','DTS_st_90','DTS_v_365','DTS_v_90','easting','Edaf','Fault','Haz_clay','Haz_subsid','height','Index_ok','Inv_landsl','Inv_subsid','Land_Cover','latitude','Lito','longitude','mean_vel','Mining','name_procc','northing','pre_m_1','pre_m_30','pre_m_365','pre_m_90','pre_r_1','pre_r_30','pre_r_365','pre_r_90','pre_sl_1','pre_sl_30','pre_sl_365','pre_sl_90','pre_st_1','pre_st_30','pre_st_365','Process','Railways','Roads','Sand_0cm','SAR_geom','Slope','Sludge','Sus_landsl','TDS_trend','TDS_type','TPI','TRI','VS30','water_mass'];
                     
-                    // Filtrar y ordenar las columnas de fecha
+                    // 1. Filtrar y ORDENAR (crucial para que la línea no salte de atrás hacia adelante)
                     const camposFechas = Object.keys(attrs)
                         .filter(key => !excluir.includes(key))
-                        .sort(); // Ordenar cronológicamente (D20210101, D20210112...)
+                        .sort(); 
                     
-                    const etiquetasX = camposFechas.map(f => f.replace('D', ''));
-                    const valoresY = camposFechas.map(f => attrs[f]);
-
+                    // 2. Convertir nombres de columnas en Fechas Reales y Valores en Números
+                    const valoresY = camposFechas.map(f => parseFloat(attrs[f]));
+                    const objetosFecha = camposFechas.map(f => {
+                        // Asumiendo formato DYYYYMMDD -> YYYY-MM-DD
+                        let s = f.replace('D', '');
+                        return `${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
+                    });
+                    
                     var data = [{
-                        x: etiquetasX,
+                        x: objetosFecha,
                         y: valoresY,
                         type: 'scatter',
-                        mode: 'lines+markers',
-                        line: { shape: 'spline', color: '#1f77b4' },
-                        marker: { size: 4 }
+                        mode: 'lines', // 'lines' se ve más limpio con 303 puntos que 'lines+markers'
+                        line: { color: '#1f77b4', width: 2 },
+                        name: 'Desplazamiento'
                     }];
-
+                    
                     var layout = {
-                        title: 'Serie Temporal - Punto: ' + id,
-                        xaxis: { 
+                        title: { text: 'Serie Temporal: ' + id },
+                        autosize: true,
+                        xaxis: {
+                            type: 'date', // Forzamos escala de tiempo
                             title: 'Fecha',
-                            rangeslider: { visible: true } 
+                            rangeslider: { visible: true }, // Slider para navegar los 303 puntos
+                            autorange: true
                         },
-                        yaxis: { title: 'Desplazamiento (mm)' },
-                        margin: { t: 60, b: 50, l: 60, r: 30 }
+                        yaxis: {
+                            title: 'mm',
+                            autorange: true, // Esto hace que el eje Y se ajuste solo a los datos del punto
+                            fixedrange: false 
+                        },
+                        margin: { t: 40, b: 40, l: 50, r: 20 }
                     };
-
+                    
                     Plotly.newPlot('grafico', data, layout, {responsive: true});
+
                 })
                 .catch(err => {
                     console.error("Error:", err);
@@ -70,3 +84,4 @@
     </script>
 </body>
 </html>
+
