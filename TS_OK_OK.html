@@ -1,26 +1,15 @@
 <html>
 <head>
-    <meta charset="utf-8">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <div id="grafico"></div>
     <script>
+        // Esta función lee los datos que le mandes desde el mapa de ArcGIS
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // 1. Intentamos leer lo que mande ArcGIS
-        let nombre = urlParams.get('nombre') || "Punto de Prueba";
-        let valores, fechas;
-
-        try {
-            valores = JSON.parse(urlParams.get('datos'));
-            fechas = JSON.parse(urlParams.get('fechas'));
-        } catch (e) {
-            // 2. Si fallan los datos (o están vacíos), ponemos datos de prueba para que no salga 404
-            valores = [10, 15, 13, 17];
-            fechas = ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"];
-            nombre = "MODO PRUEBA (Sin datos de ArcGIS)";
-        }
+        const nombre = urlParams.get('nombre');
+        const valores = JSON.parse(urlParams.get('datos')); // Recibe los datos de las columnas
+        const fechas = JSON.parse(urlParams.get('fechas'));
 
         var data = [{
             x: fechas,
@@ -34,3 +23,4 @@
     </script>
 </body>
 </html>
+
