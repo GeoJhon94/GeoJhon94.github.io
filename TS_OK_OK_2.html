@@ -29,7 +29,7 @@
                         return;
                     }
 
-                    const excluir = ['FID','Age','Altitude','Aspect','Build','Build_Vol','Clay_0cm','Climatic_K','Curvature','Dams','Db_0cm','Den_Pob','Dts_r_365','DTS_r_90','DTS_st_365','DTS_st_90','DTS_v_365','DTS_v_90','easting','Edaf','Fault','Haz_clay','Haz_subsid','height','Index_ok','Inv_landsl','Inv_subsid','Land_Cover','latitude','Lito','longitude','mean_vel','Mining','name_procc','northing','pre_m_1','pre_m_30','pre_m_365','pre_m_90','pre_r_1','pre_r_30','pre_r_365','pre_r_90','pre_sl_1','pre_sl_30','pre_sl_365','pre_sl_90','pre_st_1','pre_st_30','pre_st_365','Process','Railways','Roads','Sand_0cm','SAR_geom','Slope','Sludge','Sus_landsl','TDS_trend','TDS_type','TPI','TRI','VS30','water_mass'];
+                    const excluir = ['FID','Index_ok','mean_vel','Land_Cover'];
 
                     // Creamos una "traza" (línea) por cada punto
                     const traces = response.features.map(feature => {
@@ -83,4 +83,5 @@
 </html>
 </body>
 </html>
+
 
