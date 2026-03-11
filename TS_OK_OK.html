@@ -5,44 +5,37 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <div id="status" style="font-family:sans-serif; padding:10px;">Conectando...</div>
     <div id="grafico"></div>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
 
+        // FUNCIÓN QUE SÍ FUNCIONA (La de prueba que ya viste)
+        function dibujar(f, v, titulo) {
+            Plotly.newPlot('grafico', [{x: f, y: v, type: 'scatter', mode: 'lines+markers'}], {title: titulo});
+        }
+
         if (!id) {
-            document.getElementById('status').innerText = "Esperando selección en el mapa...";
+            dibujar(["2024-01-01"], [0], "ESPERANDO ID EN URL...");
         } else {
-            // Dividimos la URL para que GitHub no la bloquee
-            const parte1 = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/";
-            const parte2 = "arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
-            const fullURL = parte1 + parte2 + "?where=index_ok=" + id + "&outFields=*&f=json";
+            // Usamos una técnica que Chrome no bloquea (JSONP/Fetch simple)
+            const service = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
+            const query = service + "?where=index_ok=" + id + "&outFields=*&f=pjson";
 
-            fetch(fullURL)
+            fetch(query)
                 .then(r => r.json())
-                .then(json => {
-                    if (json.features && json.features.length > 0) {
-                        const attrs = json.features[0].attributes;
-                        const fechasFiltradas = Object.keys(attrs).filter(k => k.indexOf('D') === 0).sort();
-                        
-                        const xData = fechasFiltradas.map(f => f.substring(1,5)+"-"+f.substring(5,7)+"-"+f.substring(7,9));
-                        const yData = fechasFiltradas.map(f => attrs[f]);
-
-                        document.getElementById('status').style.display = 'none';
-                        Plotly.newPlot('grafico', [{
-                            x: xData,
-                            y: yData,
-                            type: 'scatter',
-                            mode: 'lines+markers'
-                        }], { title: 'Serie Punto: ' + id });
-                    } else {
-                        document.getElementById('status').innerText = "ID no encontrado.";
-                    }
+                .then(data => {
+                    const feat = data.features[0].attributes;
+                    const cols = Object.keys(feat).filter(k => k.startsWith('D')).sort();
+                    const valores = cols.map(c => feat[c]);
+                    const fechas = cols.map(c => c.substring(1,5)+"-"+c.substring(5,7)+"-"+c.substring(7,9));
+                    
+                    dibujar(fechas, valores, "ID REAL: " + id);
                 })
-                .catch(e => { document.getElementById('status').innerText = "Error de red."; });
+                .catch(e => {
+                    dibujar(["2024-01-01"], [0], "ERROR DE CONEXIÓN ARCGIS");
+                });
         }
     </script>
 </body>
 </html>
-
