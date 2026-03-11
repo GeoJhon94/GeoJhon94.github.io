@@ -1,26 +1,75 @@
 <html>
 <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #grafico { width: 100%; height: 100vh; }
+    </style>
 </head>
 <body>
     <div id="grafico"></div>
     <script>
-        // Esta función lee los datos que le mandes desde el mapa de ArcGIS
         const urlParams = new URLSearchParams(window.location.search);
-        const nombre = urlParams.get('nombre');
-        const valores = JSON.parse(urlParams.get('datos')); // Recibe los datos de las columnas
-        const fechas = JSON.parse(urlParams.get('fechas'));
+        const id = urlParams.get('id');
 
-        var data = [{
-            x: fechas,
-            y: valores,
-            type: 'scatter',
-            mode: 'lines+markers',
-            name: nombre
-        }];
+        if (id) {
+            // 1. CAMBIA ESTA URL: Ve a la página de tu capa en ArcGIS Online, 
+            // baja hasta "URL de la capa" (abajo a la derecha) y pégala aquí.
+            // Debe terminar en "/0" (o el índice de tu capa).
+            const serviceURL = "https://services.arcgis.com/TU_ID_ORGANIZACION/arcgis/rest/services/NOMBRE_DE_TU_CAPA/FeatureServer/0/query";
+            
+            // 2. CAMBIA 'OBJECTID': Si tu campo de ID único se llama distinto (ej: 'ID_PUNTO'), cámbialo abajo.
+            const queryUrl = `${serviceURL}?where=OBJECTID=${id}&outFields=*&f=pjson`;
 
-        Plotly.newPlot('grafico', data, {title: 'Serie Temporal: ' + nombre});
+            fetch(queryUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.features || response.features.length === 0) {
+                        document.body.innerHTML = "No se encontraron datos para el ID: " + id;
+                        return;
+                    }
+
+                    const attrs = response.features[0].attributes;
+                    
+                    // 3. LISTA DE EXCLUSIÓN: Escribe aquí los nombres de las columnas que NO quieres graficar.
+                    // El resto (tus 303 campos de fecha) se graficarán automáticamente.
+                    const excluir = ['OBJECTID', 'Shape', 'ID', 'GlobalID', 'nombre_sitio', 'latitud', 'longitud'];
+                    
+                    const camposFechas = Object.keys(attrs).filter(key => !excluir.includes(key));
+                    
+                    // 4. LIMPIEZA DE NOMBRES (OPCIONAL): 
+                    // Si tus columnas se llaman 'F2023_01', puedes quitar la 'F' para que el eje X se vea bien.
+                    const etiquetasX = camposFechas.map(f => f.replace('F', '').replaceAll('_', '/'));
+                    const valoresY = camposFechas.map(f => attrs[f]);
+
+                    var data = [{
+                        x: etiquetasX,
+                        y: valoresY,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { shape: 'spline', color: '#1f77b4' },
+                        marker: { size: 4 }
+                    }];
+
+                    var layout = {
+                        title: 'Serie Temporal - Registro ' + id,
+                        xaxis: { 
+                            title: 'Fecha/Periodo',
+                            rangeslider: { visible: true } // Esto ayuda con los 303 puntos
+                        },
+                        yaxis: { title: 'Valor medido' },
+                        margin: { t: 50, b: 50, l: 50, r: 20 }
+                    };
+
+                    Plotly.newPlot('grafico', data, layout, {responsive: true});
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    document.body.innerHTML = "Error al conectar con la capa de ArcGIS.";
+                });
+        } else {
+            document.body.innerHTML = "Selecciona un punto en el mapa para ver su gráfica.";
+        }
     </script>
 </body>
 </html>
-
