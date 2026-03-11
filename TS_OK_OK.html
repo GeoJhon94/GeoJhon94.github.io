@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -8,34 +7,30 @@
     <div id="grafico"></div>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const id = urlParams.get('id');
+        
+        // 1. Intentamos leer lo que mande ArcGIS
+        let nombre = urlParams.get('nombre') || "Punto de Prueba";
+        let valores, fechas;
 
-        // FUNCIÓN QUE SÍ FUNCIONA (La de prueba que ya viste)
-        function dibujar(f, v, titulo) {
-            Plotly.newPlot('grafico', [{x: f, y: v, type: 'scatter', mode: 'lines+markers'}], {title: titulo});
+        try {
+            valores = JSON.parse(urlParams.get('datos'));
+            fechas = JSON.parse(urlParams.get('fechas'));
+        } catch (e) {
+            // 2. Si fallan los datos (o están vacíos), ponemos datos de prueba para que no salga 404
+            valores = [10, 15, 13, 17];
+            fechas = ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"];
+            nombre = "MODO PRUEBA (Sin datos de ArcGIS)";
         }
 
-        if (!id) {
-            dibujar(["2024-01-01"], [0], "ESPERANDO ID EN URL...");
-        } else {
-            // Usamos una técnica que Chrome no bloquea (JSONP/Fetch simple)
-            const service = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
-            const query = service + "?where=index_ok=" + id + "&outFields=*&f=pjson";
+        var data = [{
+            x: fechas,
+            y: valores,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: nombre
+        }];
 
-            fetch(query)
-                .then(r => r.json())
-                .then(data => {
-                    const feat = data.features[0].attributes;
-                    const cols = Object.keys(feat).filter(k => k.startsWith('D')).sort();
-                    const valores = cols.map(c => feat[c]);
-                    const fechas = cols.map(c => c.substring(1,5)+"-"+c.substring(5,7)+"-"+c.substring(7,9));
-                    
-                    dibujar(fechas, valores, "ID REAL: " + id);
-                })
-                .catch(e => {
-                    dibujar(["2024-01-01"], [0], "ERROR DE CONEXIÓN ARCGIS");
-                });
-        }
+        Plotly.newPlot('grafico', data, {title: 'Serie Temporal: ' + nombre});
     </script>
 </body>
 </html>
