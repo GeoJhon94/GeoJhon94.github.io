@@ -2,7 +2,7 @@
 <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; }
+        body { margin: 0; padding: 0; font-family: sans-serif; }
         #grafico { width: 100%; height: 100vh; }
     </style>
 </head>
@@ -13,32 +13,29 @@
         const id = urlParams.get('id');
 
         if (id) {
-            // 1. CAMBIA ESTA URL: Ve a la página de tu capa en ArcGIS Online, 
-            // baja hasta "URL de la capa" (abajo a la derecha) y pégala aquí.
-            // Debe terminar en "/0" (o el índice de tu capa).
             const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0";
             
-            // 2. CAMBIA 'OBJECTID': Si tu campo de ID único se llama distinto (ej: 'ID_PUNTO'), cámbialo abajo.
-            const queryUrl = `${serviceURL}?where=Index_ok=${id}&outFields=*&f=pjson`;
+            // 1. Añadimos /query y 2. Ponemos '${id}' entre comillas simples por ser TEXTO
+            const queryUrl = `${serviceURL}/query?where=Index_ok='${id}'&outFields=*&f=pjson`;
 
             fetch(queryUrl)
                 .then(res => res.json())
                 .then(response => {
                     if (!response.features || response.features.length === 0) {
-                        document.body.innerHTML = "No se encontraron datos para el ID: " + id;
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos para el ID: " + id + "</div>";
                         return;
                     }
 
                     const attrs = response.features[0].attributes;
                     
-                    // 3. LISTA DE EXCLUSIÓN: Escribe aquí los nombres de las columnas que NO quieres graficar.
-                    // El resto (tus 303 campos de fecha) se graficarán automáticamente.
-                    const excluir = ['FID','Age','Altitude','Aspect','Build','Build_Vol','Clay_0cm','Climatic_K','Curvature','Dams','Db_0cm','Den_Pob','Dts_r_365','DTS_r_90','DTS_st_365','DTS_st_90','DTS_v_365','DTS_v_90','easting','Edaf','Fault','Haz_clay','Haz_subsid','height','Index_ok','Inv_landsl','Inv_subsid','Land_Cover','latitude','Lito','longitude','mean_vel','Mining','name_procc','northing','pre_m_1','pre_m_30','pre_m_365','pre_m_90','pre_r_1','pre_r_30','pre_r_365','pre_r_90','pre_sl_1','pre_sl_30','pre_sl_365','pre_sl_90','pre_st_1','pre_st_1','pre_st_30','pre_st_365','Process','Railways','Roads','Sand_0cm','SAR_geom','Slope','Sludge','Sus_landsl','TDS_trend','TDS_type','TPI','TRI','VS30','water_mass'];
+                    // Tu lista de exclusión (Asegúrate de que no falte ninguno)
+                    const excluir = ['FID','Age','Altitude','Aspect','Build','Build_Vol','Clay_0cm','Climatic_K','Curvature','Dams','Db_0cm','Den_Pob','Dts_r_365','DTS_r_90','DTS_st_365','DTS_st_90','DTS_v_365','DTS_v_90','easting','Edaf','Fault','Haz_clay','Haz_subsid','height','Index_ok','Inv_landsl','Inv_subsid','Land_Cover','latitude','Lito','longitude','mean_vel','Mining','name_procc','northing','pre_m_1','pre_m_30','pre_m_365','pre_m_90','pre_r_1','pre_r_30','pre_r_365','pre_r_90','pre_sl_1','pre_sl_30','pre_sl_365','pre_sl_90','pre_st_1','pre_st_30','pre_st_365','Process','Railways','Roads','Sand_0cm','SAR_geom','Slope','Sludge','Sus_landsl','TDS_trend','TDS_type','TPI','TRI','VS30','water_mass'];
                     
-                    const camposFechas = Object.keys(attrs).filter(key => !excluir.includes(key));
+                    // Filtrar y ordenar las columnas de fecha
+                    const camposFechas = Object.keys(attrs)
+                        .filter(key => !excluir.includes(key))
+                        .sort(); // Ordenar cronológicamente (D20210101, D20210112...)
                     
-                    // 4. LIMPIEZA DE NOMBRES (OPCIONAL): 
-                    // Si tus columnas se llaman 'F2023_01', puedes quitar la 'F' para que el eje X se vea bien.
                     const etiquetasX = camposFechas.map(f => f.replace('D', ''));
                     const valoresY = camposFechas.map(f => attrs[f]);
 
@@ -52,26 +49,24 @@
                     }];
 
                     var layout = {
-                        title: 'Serie Temporal - Registro ' + id,
+                        title: 'Serie Temporal - Punto: ' + id,
                         xaxis: { 
-                            title: 'Fecha/Periodo',
-                            rangeslider: { visible: true } // Esto ayuda con los 303 puntos
+                            title: 'Fecha',
+                            rangeslider: { visible: true } 
                         },
-                        yaxis: { title: 'Valor medido' },
-                        margin: { t: 50, b: 50, l: 50, r: 20 }
+                        yaxis: { title: 'Desplazamiento (mm)' },
+                        margin: { t: 60, b: 50, l: 60, r: 30 }
                     };
 
                     Plotly.newPlot('grafico', data, layout, {responsive: true});
                 })
                 .catch(err => {
                     console.error("Error:", err);
-                    document.body.innerHTML = "Error al conectar con la capa de ArcGIS.";
+                    document.body.innerHTML = "<div style='padding:20px;'>Error al conectar con la capa de ArcGIS. Revisa la consola (F12).</div>";
                 });
         } else {
-            document.body.innerHTML = "Selecciona un punto en el mapa para ver su gráfica.";
+            document.body.innerHTML = "<div style='padding:20px;'>Esperando selección en el mapa...</div>";
         }
     </script>
 </body>
 </html>
-
-
