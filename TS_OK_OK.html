@@ -11,75 +11,75 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
-        const serviceURL = urlParams.get('layer'); // Captura la URL de la capa desde el Dashboard
 
-        // El fetch debe estar DENTRO del bloque if
-        if (id && serviceURL) {
+        if (id) {
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0";
+            
+            // 1. Añadimos /query y 2. Ponemos '${id}' entre comillas simples por ser TEXTO
             const queryUrl = `${serviceURL}/query?where=Index_ok='${id}'&outFields=*&f=pjson`;
             
             fetch(queryUrl)
                 .then(res => res.json())
                 .then(response => {
                     if (!response.features || response.features.length === 0) {
-                        document.body.innerHTML = `<div style='padding:20px;'>No se encontraron datos para el ID: ${id}</div>`;
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos para el ID: " + id + "</div>";
                         return;
                     }
 
                     const attrs = response.features[0].attributes;
+
+                    // ... dentro del fetch, después de obtener 'attrs' ...
+                    
                     const excluir = ['FID','Age','Altitude','Aspect','Build','Build_Vol','Clay_0cm','Climatic_K','Curvature','Dams','Db_0cm','Den_Pob','Dts_r_365','DTS_r_90','DTS_st_365','DTS_st_90','DTS_v_365','DTS_v_90','easting','Edaf','Fault','Haz_clay','Haz_subsid','height','Index_ok','Inv_landsl','Inv_subsid','Land_Cover','latitude','Lito','longitude','mean_vel','Mining','name_procc','northing','pre_m_1','pre_m_30','pre_m_365','pre_m_90','pre_r_1','pre_r_30','pre_r_365','pre_r_90','pre_sl_1','pre_sl_30','pre_sl_365','pre_sl_90','pre_st_1','pre_st_30','pre_st_365','Process','Railways','Roads','Sand_0cm','SAR_geom','Slope','Sludge','Sus_landsl','TDS_trend','TDS_type','TPI','TRI','VS30','water_mass'];
                     
-                    // 1. Filtrar y Ordenar columnas de fecha
+                    // 1. Filtrar y ORDENAR (crucial para que la línea no salte de atrás hacia adelante)
                     const camposFechas = Object.keys(attrs)
                         .filter(key => !excluir.includes(key))
                         .sort(); 
                     
-                    // 2. Limpieza de datos (Para que el eje Y no se bloquee)
-                    const valoresY = camposFechas.map(f => {
-                        let v = attrs[f];
-                        let num = parseFloat(v);
-                        return isNaN(num) ? null : num; 
-                    });
-
+                    // 2. Convertir nombres de columnas en Fechas Reales y Valores en Números
+                    const valoresY = camposFechas.map(f => parseFloat(attrs[f]));
                     const objetosFecha = camposFechas.map(f => {
+                        // Asumiendo formato DYYYYMMDD -> YYYY-MM-DD
                         let s = f.replace('D', '');
                         return `${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
                     });
-
+                    
                     var data = [{
                         x: objetosFecha,
                         y: valoresY,
                         type: 'scatter',
-                        mode: 'lines',
-                        line: { color: '#1f77b4', width: 2, shape: 'spline' },
-                        connectgaps: false 
+                        mode: 'lines', // 'lines' se ve más limpio con 303 puntos que 'lines+markers'
+                        line: { color: '#1f77b4', width: 2 },
+                        name: 'Desplazamiento'
                     }];
-
+                    
                     var layout = {
                         title: { text: 'Serie Temporal: ' + id },
-                        xaxis: { 
-                            type: 'date', 
+                        autosize: true,
+                        xaxis: {
+                            type: 'date', // Forzamos escala de tiempo
                             title: 'Fecha',
-                            rangeslider: { visible: true },
+                            rangeslider: { visible: true }, // Slider para navegar los 303 puntos
                             autorange: true
                         },
-                        yaxis: { 
+                        yaxis: {
                             title: 'mm',
-                            autorange: true, // Esto ajustará el eje Y según el punto seleccionado
+                            autorange: true, // Esto hace que el eje Y se ajuste solo a los datos del punto
                             fixedrange: false 
                         },
-                        autosize: true,
-                        margin: { t: 60, b: 40, l: 60, r: 30 }
+                        margin: { t: 40, b: 40, l: 50, r: 20 }
                     };
+                    
+                    Plotly.newPlot('grafico', data, layout, {responsive: true});
 
-                    Plotly.react('grafico', data, layout, {responsive: true});
                 })
                 .catch(err => {
                     console.error("Error:", err);
-                    document.body.innerHTML = "<div style='padding:20px;'>Error al conectar con ArcGIS.</div>";
+                    document.body.innerHTML = "<div style='padding:20px;'>Error al conectar con la capa de ArcGIS. Revisa la consola (F12).</div>";
                 });
         } else {
-            // Mensaje si faltan parámetros
-            document.body.innerHTML = "<div style='padding:20px;'>Esperando selección... <br><small>Faltan parámetros id o layer en la URL.</small></div>";
+            document.body.innerHTML = "<div style='padding:20px;'>Esperando selección en el mapa...</div>";
         }
     </script>
 </body>
