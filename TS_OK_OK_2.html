@@ -13,7 +13,7 @@
         const idParam = urlParams.get('id');
 
         if (idParam) {
-            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok_2_vista/FeatureServer/0";
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok_3_vista/FeatureServer/0";
             
             // Convertimos la lista de IDs (Punto1,Punto2) a formato SQL: 'Punto1','Punto2'
             const listaIds = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
@@ -83,3 +83,4 @@
 </html>
 </body>
 </html>
+
