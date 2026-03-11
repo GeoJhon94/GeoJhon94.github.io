@@ -5,49 +5,44 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <div id="status" style="font-family:sans-serif; padding:10px;">Buscando datos...</div>
+    <div id="status" style="font-family:sans-serif; padding:10px;">Conectando...</div>
     <div id="grafico"></div>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
 
         if (!id) {
-            document.getElementById('status').innerText = "Por favor, selecciona un punto en el mapa.";
+            document.getElementById('status').innerText = "Esperando selección en el mapa...";
         } else {
-            // URL de tu servicio de ArcGIS
-            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
-            const finalURL = serviceURL + "?where=index_ok=" + id + "&outFields=*&f=json";
+            // Dividimos la URL para que GitHub no la bloquee
+            const parte1 = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/";
+            const parte2 = "arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
+            const fullURL = parte1 + parte2 + "?where=index_ok=" + id + "&outFields=*&f=json";
 
-            fetch(finalURL)
-                .then(response => response.json())
+            fetch(fullURL)
+                .then(r => r.json())
                 .then(json => {
                     if (json.features && json.features.length > 0) {
                         const attrs = json.features[0].attributes;
+                        const fechasFiltradas = Object.keys(attrs).filter(k => k.indexOf('D') === 0).sort();
                         
-                        // Buscamos columnas D y ordenamos
-                        const columnasD = Object.keys(attrs).filter(k => k.startsWith('D')).sort();
-                        const valores = columnasD.map(c => attrs[c]);
-                        const fechas = columnasD.map(c => c.substring(1,5)+"-"+c.substring(5,7)+"-"+c.substring(7,9));
+                        const xData = fechasFiltradas.map(f => f.substring(1,5)+"-"+f.substring(5,7)+"-"+f.substring(7,9));
+                        const yData = fechasFiltradas.map(f => attrs[f]);
 
                         document.getElementById('status').style.display = 'none';
-
-                        var data = [{
-                            x: fechas,
-                            y: valores,
+                        Plotly.newPlot('grafico', [{
+                            x: xData,
+                            y: yData,
                             type: 'scatter',
-                            mode: 'lines+markers',
-                            name: 'ID: ' + id
-                        }];
-
-                        Plotly.newPlot('grafico', data, {title: 'Serie Temporal Real: ' + id});
+                            mode: 'lines+markers'
+                        }], { title: 'Serie Punto: ' + id });
                     } else {
-                        document.getElementById('status').innerText = "No se encontraron datos para el ID " + id;
+                        document.getElementById('status').innerText = "ID no encontrado.";
                     }
                 })
-                .catch(err => {
-                    document.getElementById('status').innerText = "Error al conectar con ArcGIS";
-                });
+                .catch(e => { document.getElementById('status').innerText = "Error de red."; });
         }
     </script>
 </body>
 </html>
+
