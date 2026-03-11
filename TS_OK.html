@@ -2,91 +2,67 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Serie Temporal - SHAPE01</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Serie Temporal</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: white; }
-        #contenedor { width: 100%; max-width: 800px; margin: auto; }
-        #mensaje { text-align: center; color: #666; margin-top: 50px; }
+        body { font-family: sans-serif; margin: 10px; }
+        #mensaje { color: #888; text-align: center; margin-top: 20px; }
+        canvas { width: 100% !important; height: auto !important; }
     </style>
 </head>
 <body>
 
-    <div id="contenedor">
-        <div id="mensaje">Selecciona un punto en el mapa para ver la serie temporal...</div>
-        <canvas id="miGrafica"></canvas>
-    </div>
+    <div id="mensaje">Esperando selección de punto...</div>
+    <canvas id="miGrafica"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // 1. CAPTURAR EL ID (index_ok) DESDE LA URL
         const params = new URLSearchParams(window.location.search);
-        const idSeleccionado = params.get('id'); 
+        const id = params.get('id');
 
-        if (idSeleccionado) {
-            document.getElementById('mensaje').innerText = "Cargando datos del punto " + idSeleccionado + "...";
-            consultarArcGIS(idSeleccionado);
-        }
-
-        // 2. CONSULTA AL SERVIDOR DE ARCGIS
-        function consultarArcGIS(id) {
-            // Tu URL específica terminada en /0/query
-            const serviceUrl = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
+        if (id) {
+            document.getElementById('mensaje').innerText = "Cargando datos del ID: " + id;
             
-            // Consulta: buscamos por index_ok, pedimos todos los campos (*) y formato JSON
-            const queryUrl = `${serviceUrl}?where=index_ok=${id}&outFields=*&f=json`;
+            // URL de consulta (Query)
+            const url = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query?where=index_ok=" + id + "&outFields=*&f=json";
 
-            fetch(queryUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.features && data.features.length > 0) {
-                        const atributos = data.features[0].attributes;
+            fetch(url)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.features && res.features.length > 0) {
+                        const atributos = res.features[0].attributes;
                         document.getElementById('mensaje').style.display = 'none';
-                        dibujarGrafica(atributos, id);
+                        generarGrafica(atributos, id);
                     } else {
-                        document.getElementById('mensaje').innerText = "No se encontraron datos para el ID: " + id;
+                        document.getElementById('mensaje').innerText = "No hay datos para index_ok=" + id;
                     }
                 })
-                .catch(error => {
-                    console.error("Error:", error);
-                    document.getElementById('mensaje').innerText = "Error al conectar con ArcGIS.";
+                .catch(err => {
+                    document.getElementById('mensaje').innerText = "Error en la conexión con ArcGIS";
+                    console.error(err);
                 });
         }
 
-        // 3. FILTRAR COLUMNAS "D" Y GRAFICAR
-        function dibujarGrafica(atributos, id) {
-            // Filtramos solo las columnas que empiezan con D (YYYYMMDD)
-            const camposFechas = Object.keys(atributos)
-                .filter(nombre => nombre.startsWith('D'))
-                .sort(); // Ordenamos cronológicamente
+        function generarGrafica(datos, idLabel) {
+            // Filtrar y ordenar campos que empiezan por D
+            const fechas = Object.keys(datos)
+                .filter(k => k.startsWith('D'))
+                .sort();
 
-            // Preparamos etiquetas (X) y valores (Y)
-            const etiquetas = camposFechas.map(f => {
-                // Convertimos D20240101 -> 2024-01-01
-                return f.substring(1, 5) + "-" + f.substring(5, 7) + "-" + f.substring(7, 9);
-            });
-            
-            const valores = camposFechas.map(f => atributos[f]);
+            const valores = fechas.map(f => datos[f]);
+            const etiquetas = fechas.map(f => f.substring(1, 5) + "-" + f.substring(5, 7) + "-" + f.substring(7, 9));
 
-            // Creamos la gráfica
             new Chart(document.getElementById('miGrafica'), {
                 type: 'line',
                 data: {
                     labels: etiquetas,
                     datasets: [{
-                        label: 'Serie Temporal (index_ok: ' + id + ')',
+                        label: 'Serie Temporal - ID ' + idLabel,
                         data: valores,
                         borderColor: '#007aff',
-                        backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3
+                        tension: 0.2,
+                        fill: false
                     }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' }
-                    }
                 }
             });
         }
