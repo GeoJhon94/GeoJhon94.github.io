@@ -1,70 +1,60 @@
-<!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Serie Temporal</title>
-    <style>
-        body { font-family: sans-serif; margin: 10px; }
-        #mensaje { color: #888; text-align: center; margin-top: 20px; }
-        canvas { width: 100% !important; height: auto !important; }
-    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-
-    <div id="mensaje">Esperando selección de punto...</div>
-    <canvas id="miGrafica"></canvas>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div id="mensaje" style="font-family:sans-serif;color:#666;text-align:center;">Cargando serie temporal...</div>
+    <div id="grafico"></div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('id');
+        // 1. Capturamos el ID desde la URL (?id=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
 
         if (id) {
-            document.getElementById('mensaje').innerText = "Cargando datos del ID: " + id;
-            
-            // URL de consulta (Query)
-            const url = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query?where=index_ok=" + id + "&outFields=*&f=json";
+            // 2. Consultamos a tu FeatureServer usando el index_ok
+            const serviceUrl = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok/FeatureServer/0/query";
+            const queryUrl = serviceUrl + "?where=index_ok=" + id + "&outFields=*&f=json";
 
-            fetch(url)
-                .then(res => res.json())
-                .then(res => {
-                    if (res.features && res.features.length > 0) {
-                        const atributos = res.features[0].attributes;
+            fetch(queryUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.features && data.features.length > 0) {
+                        const atributos = data.features[0].attributes;
+                        
+                        // 3. Filtramos las columnas que empiezan con D
+                        const columnasD = Object.keys(atributos)
+                            .filter(k => k.startsWith('D'))
+                            .sort();
+
+                        const fechas = columnasD.map(f => f.substring(1, 5) + "-" + f.substring(5, 7) + "-" + f.substring(7, 9));
+                        const valores = columnasD.map(f => atributos[f]);
+
+                        // 4. Pintamos con Plotly (tu librería)
                         document.getElementById('mensaje').style.display = 'none';
-                        generarGrafica(atributos, id);
+                        var trace = {
+                            x: fechas,
+                            y: valores,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Punto ' + id,
+                            line: {color: '#1f77b4'}
+                        };
+
+                        Plotly.newPlot('grafico', [trace], {
+                            title: 'Serie Temporal: ' + id,
+                            xaxis: { title: 'Fecha' },
+                            yaxis: { title: 'Valor' }
+                        });
                     } else {
-                        document.getElementById('mensaje').innerText = "No hay datos para index_ok=" + id;
+                        document.getElementById('mensaje').innerText = "No hay datos para el ID: " + id;
                     }
                 })
                 .catch(err => {
-                    document.getElementById('mensaje').innerText = "Error en la conexión con ArcGIS";
-                    console.error(err);
+                    document.getElementById('mensaje').innerText = "Error al consultar ArcGIS";
                 });
-        }
-
-        function generarGrafica(datos, idLabel) {
-            // Filtrar y ordenar campos que empiezan por D
-            const fechas = Object.keys(datos)
-                .filter(k => k.startsWith('D'))
-                .sort();
-
-            const valores = fechas.map(f => datos[f]);
-            const etiquetas = fechas.map(f => f.substring(1, 5) + "-" + f.substring(5, 7) + "-" + f.substring(7, 9));
-
-            new Chart(document.getElementById('miGrafica'), {
-                type: 'line',
-                data: {
-                    labels: etiquetas,
-                    datasets: [{
-                        label: 'Serie Temporal - ID ' + idLabel,
-                        data: valores,
-                        borderColor: '#007aff',
-                        tension: 0.2,
-                        fill: false
-                    }]
-                }
-            });
+        } else {
+            document.getElementById('mensaje').innerText = "Por favor, selecciona un punto en el mapa.";
         }
     </script>
 </body>
