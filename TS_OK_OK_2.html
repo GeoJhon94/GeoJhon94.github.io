@@ -1,0 +1,85 @@
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #grafico { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="grafico"></div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get('id');
+
+        if (idParam) {
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/CTTC_ASTURIAS_S1_ASC_ok_2_vista/FeatureServer/0";
+            
+            // Convertimos la lista de IDs (Punto1,Punto2) a formato SQL: 'Punto1','Punto2'
+            const listaIds = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
+            
+            // Usamos IN para traer todos los puntos seleccionados
+            const queryUrl = `${serviceURL}/query?where=Index_ok IN (${listaIds})&outFields=*&f=pjson`;
+
+            fetch(queryUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.features || response.features.length === 0) {
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos.</div>";
+                        return;
+                    }
+
+                    const excluir = ['FID','Age','Altitude','Aspect','Build','Build_Vol','Clay_0cm','Climatic_K','Curvature','Dams','Db_0cm','Den_Pob','Dts_r_365','DTS_r_90','DTS_st_365','DTS_st_90','DTS_v_365','DTS_v_90','easting','Edaf','Fault','Haz_clay','Haz_subsid','height','Index_ok','Inv_landsl','Inv_subsid','Land_Cover','latitude','Lito','longitude','mean_vel','Mining','name_procc','northing','pre_m_1','pre_m_30','pre_m_365','pre_m_90','pre_r_1','pre_r_30','pre_r_365','pre_r_90','pre_sl_1','pre_sl_30','pre_sl_365','pre_sl_90','pre_st_1','pre_st_30','pre_st_365','Process','Railways','Roads','Sand_0cm','SAR_geom','Slope','Sludge','Sus_landsl','TDS_trend','TDS_type','TPI','TRI','VS30','water_mass'];
+
+                    // Creamos una "traza" (línea) por cada punto
+                    const traces = response.features.map(feature => {
+                        const attrs = feature.attributes;
+                        const camposFechas = Object.keys(attrs)
+                            .filter(key => !excluir.includes(key))
+                            .sort();
+
+                        const valoresY = camposFechas.map(f => {
+                            let val = parseFloat(attrs[f]);
+                            return isNaN(val) ? null : val;
+                        });
+
+                        const objetosFecha = camposFechas.map(f => {
+                            let s = f.replace('D', '');
+                            return `${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
+                        });
+
+                        return {
+                            x: objetosFecha,
+                            y: valoresY,
+                            name: attrs.Index_ok, // Aparecerá en la leyenda
+                            type: 'scatter',
+                            mode: 'lines',
+                            line: { width: 2, shape: 'spline' },
+                            connectgaps: false
+                        };
+                    });
+
+                    const layout = {
+                        title: 'Comparativa de Series Temporales',
+                        xaxis: { type: 'date', title: 'Fecha', rangeslider: {} },
+                        yaxis: { title: 'Desplazamiento (mm)', autorange: true },
+                        showlegend: true, // Importante para diferenciar los puntos
+                        legend: { orientation: 'h', y: -0.2 },
+                        margin: { t: 50, b: 100, l: 60, r: 30 },
+                        hovermode: 'closest'
+                    };
+
+                    Plotly.newPlot('grafico', traces, layout, {responsive: true});
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    document.body.innerHTML = "Error en la conexión.";
+                });
+        } else {
+            document.body.innerHTML = "<div style='padding:20px;'>Usa el lazo o selecciona puntos en el mapa...</div>";
+        }
+    </script>
+</body>
+</html>
+</body>
+</html>
