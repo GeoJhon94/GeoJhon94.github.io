@@ -29,13 +29,11 @@
                         return;
                     }
 
-                    const excluir = ['FID','id','code_text','latitude','longitude','easting','northing','height','mean_vel','mean_vel_s','ini_date','fin_date','CLUSTERING'];
-
                     // Creamos una "traza" (línea) por cada punto
                     const traces = response.features.map(feature => {
                         const attrs = feature.attributes;
                         const camposFechas = Object.keys(attrs)
-                            .filter(key => !excluir.includes(key))
+                            .filter(key => key.startsWith('D'))
                             .sort();
 
                         const valoresY = camposFechas.map(f => {
