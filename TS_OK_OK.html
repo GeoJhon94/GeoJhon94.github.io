@@ -29,7 +29,7 @@
                         return;
                     }
 
-                    const excluir = ['FID','id','latitude','longitude','easting','northing','height','mean_vel','mean_vel_s','ini_date','fin_date','CLUSTERING'];
+                    const excluir = ['FID','id','code_text','latitude','longitude','easting','northing','height','mean_vel','mean_vel_s','ini_date','fin_date','CLUSTERING'];
 
                     // Creamos una "traza" (línea) por cada punto
                     const traces = response.features.map(feature => {
@@ -81,6 +81,3 @@
     </script>
 </body>
 </html>
-</body>
-</html>
-
