@@ -15,11 +15,13 @@
         if (idParam) {
             const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/_12D/FeatureServer/0";
             
-            // Convertimos la lista de IDs (Punto1,Punto2) a formato SQL: 'Punto1','Punto2'
-            const listaIds = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
+            const listaIds = idParam.split(',')
+                .map(i => `code_text='${i.trim()}'`)
+                .join(' OR ');
             
-            // Usamos IN para traer todos los puntos seleccionados
-            const queryUrl = `${serviceURL}/query?where=code_text IN (${listaIds})&outFields=*&f=pjson`;
+            const query = listaIds;
+            
+            const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(query)}&outFields=*&f=pjson`;
 
             fetch(queryUrl)
                 .then(res => res.json())
@@ -34,7 +36,7 @@
                         const attrs = feature.attributes;
                         const camposFechas = Object.keys(attrs)
                             .filter(key => key.startsWith('D'))
-                            .sort();
+                            .sort((a, b) => a.localeCompare(b));
 
                         const valoresY = camposFechas.map(f => {
                             let val = parseFloat(attrs[f]);
