@@ -13,7 +13,7 @@
         const idParam = urlParams.get('id');
 
         if (idParam) {
-            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/_6D/FeatureServer/0";
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/6D/FeatureServer/0";
             
             // Convertimos la lista de IDs (Punto1,Punto2) a formato SQL: 'Punto1','Punto2'
             const listaIds = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
