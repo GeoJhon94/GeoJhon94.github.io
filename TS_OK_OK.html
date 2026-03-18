@@ -41,7 +41,6 @@
                         "7": "cyan",
                         "8": "magenta",
                         "9": "yellow",
-                        "10": "red"
                     };
 
                     const centroids_1 = [];
@@ -55,7 +54,6 @@
                     const centroids7 = [];
                     const centroids8 = [];
                     const centroids9 = [];
-                    const centroids10 = [];
                     
                     response.features.forEach(feature => {
                     
@@ -87,7 +85,7 @@
                             mode: 'lines+markers',
                             line: {
                                 width: 3,
-                                color: colorCluster
+                                color: "red"
                             }
                         });
                     
@@ -106,7 +104,6 @@
                         if (clustering === 7) centroidesSeleccionados = centroids7;
                         if (clustering === 8) centroidesSeleccionados = centroids8;
                         if (clustering === 9) centroidesSeleccionados = centroids9;
-                        if (clustering === 10) centroidesSeleccionados = centroids10;
                     
                         // 🎯 SOLO EL CENTROIDE CORRECTO
                         if (centroidesSeleccionados && centroidesSeleccionados.length > 0) {
