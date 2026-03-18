@@ -19,7 +19,7 @@
             const listaIds = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
             
             // Usamos IN para traer todos los puntos seleccionados
-            const queryUrl = `${serviceURL}/query?where=Index_ok IN (${listaIds})&outFields=*&f=pjson`;
+            const queryUrl = `${serviceURL}/query?where=code_text IN (${listaIds})&outFields=*&f=pjson`;
 
             fetch(queryUrl)
                 .then(res => res.json())
@@ -29,7 +29,7 @@
                         return;
                     }
 
-                    const excluir = ['FID','Index_ok','mean_vel','Land_Cover'];
+                    const excluir = ['FID','id','latitude','longitude','easting','northing','height','mean_vel','mean_vel_s','ini_date','fin_date','CLUSTERING'];
 
                     // Creamos una "traza" (línea) por cada punto
                     const traces = response.features.map(feature => {
@@ -51,7 +51,7 @@
                         return {
                             x: objetosFecha,
                             y: valoresY,
-                            name: attrs.Index_ok, // Aparecerá en la leyenda
+                            name: attrs.code_text, // Aparecerá en la leyenda
                             type: 'scatter',
                             mode: 'lines',
                             line: { width: 2, shape: 'spline' },
