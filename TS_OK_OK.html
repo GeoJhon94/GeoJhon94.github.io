@@ -129,10 +129,21 @@
 
                     // Layaout corregido
                     const layout = {
-                        title: 'Series temporales',
+                        title: {
+                            text: 'Series temporales',
+                            x: 0.5
+                        },
                         xaxis: { type: 'date', title: 'Fecha' },
                         yaxis: { title: 'Desplazamiento (mm)' },
-                        hovermode: 'closest'
+                        hovermode: 'closest',
+                    
+                        legend: {
+                            orientation: 'h',      // horizontal
+                            x: 0.5,
+                            xanchor: 'center',
+                            y: 1.05,               // justo debajo del título
+                            yanchor: 'bottom'
+                        }
                     };
 
                     Plotly.newPlot('grafico', traces, layout);
