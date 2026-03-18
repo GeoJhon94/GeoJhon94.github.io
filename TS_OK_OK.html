@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -8,75 +9,105 @@
 </head>
 <body>
     <div id="grafico"></div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const idParam = urlParams.get('id');
 
-        if (idParam) {
+        console.log("idParam:", idParam);
+
+        if (idParam !== null && idParam.trim() !== "") {
+
             const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/_12D/FeatureServer/0";
-            
-            const listaIds = idParam.split(',')
+
+            // Construcción robusta del WHERE
+            const query = idParam.split(',')
                 .map(i => `code_text='${i.trim()}'`)
                 .join(' OR ');
-            
-            const query = listaIds;
-            
-            const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(query)}&outFields=*&f=pjson`;
+
+            const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(query)}&outFields=*&returnGeometry=false&f=pjson`;
+
+            console.log("query:", query);
+            console.log("queryUrl:", queryUrl);
 
             fetch(queryUrl)
                 .then(res => res.json())
                 .then(response => {
+
+                    console.log("response:", response);
+
                     if (!response.features || response.features.length === 0) {
-                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos.</div>";
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos (query sin resultados).</div>";
                         return;
                     }
 
-                    // Creamos una "traza" (línea) por cada punto
                     const traces = response.features.map(feature => {
+
                         const attrs = feature.attributes;
+
+                        console.log("attributes:", attrs);
+
                         const camposFechas = Object.keys(attrs)
                             .filter(key => key.startsWith('D'))
                             .sort((a, b) => a.localeCompare(b));
 
+                        console.log("camposFechas:", camposFechas);
+
+                        if (camposFechas.length === 0) {
+                            return null;
+                        }
+
                         const valoresY = camposFechas.map(f => {
-                            let val = parseFloat(attrs[f]);
+                            const val = parseFloat(attrs[f]);
                             return isNaN(val) ? null : val;
                         });
 
                         const objetosFecha = camposFechas.map(f => {
-                            let s = f.replace('D', '');
+                            const s = f.replace('D', '');
+
+                            if (s.length !== 8) return null;
+
                             return `${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
                         });
 
                         return {
                             x: objetosFecha,
                             y: valoresY,
-                            name: attrs.code_text, // Aparecerá en la leyenda
+                            name: attrs.code_text || "sin_nombre",
                             type: 'scatter',
                             mode: 'lines',
                             line: { width: 2, shape: 'spline' },
                             connectgaps: false
                         };
-                    });
+                    }).filter(t => t !== null);
+
+                    console.log("traces:", traces);
+
+                    if (traces.length === 0) {
+                        document.body.innerHTML = "<div style='padding:20px;'>Hay datos pero no campos de fechas válidos (D...)</div>";
+                        return;
+                    }
 
                     const layout = {
                         title: 'Comparativa de Series Temporales',
                         xaxis: { type: 'date', title: 'Fecha', rangeslider: {} },
                         yaxis: { title: 'Desplazamiento (mm)', autorange: true },
-                        showlegend: true, // Importante para diferenciar los puntos
+                        showlegend: true,
                         legend: { orientation: 'h', y: -0.2 },
                         margin: { t: 50, b: 100, l: 60, r: 30 },
                         hovermode: 'closest'
                     };
 
-                    Plotly.newPlot('grafico', traces, layout, {responsive: true});
+                    Plotly.newPlot('grafico', traces, layout, { responsive: true });
+
                 })
                 .catch(err => {
-                    console.error("Error:", err);
-                    document.body.innerHTML = "Error en la conexión.";
+                    console.error("Error en fetch:", err);
+                    document.body.innerHTML = "Error en la conexión (mira consola).";
                 });
+
         } else {
-            document.body.innerHTML = "<div style='padding:20px;'>Usa el lazo o selecciona puntos en el mapa...</div>";
+            document.body.innerHTML = "<div style='padding:20px;'>Falta parámetro ?id=P001,P002</div>";
         }
     </script>
 </body>
