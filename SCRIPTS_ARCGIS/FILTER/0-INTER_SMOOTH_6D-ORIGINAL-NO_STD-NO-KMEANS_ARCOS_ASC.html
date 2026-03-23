@@ -14,7 +14,7 @@
         const idParam = urlParams.get('id');
 
         if (idParam) {
-            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/02_FILTER_6D_0-INTER_SMOOTH_ARCOS_ASC/FeatureServer/0";
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/02_FILTER_6D_0_INTER_SMOOTH_ARCOS_ASC/FeatureServer/0";
             const ids = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
             const whereClause = `code_text IN (${ids})`; 
             const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(whereClause)}&outFields=*&f=pjson`;
