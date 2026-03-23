@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #grafico { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="grafico"></div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get('id');
+
+        if (idParam) {
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/01_NON_FILTER_12D_1_INTER_SMOOTH_ARCOS_DSC/FeatureServer/0";
+            const ids = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
+            const whereClause = `code_text IN (${ids})`; 
+            const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(whereClause)}&outFields=*&f=pjson`;
+
+            fetch(queryUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.features || response.features.length === 0) {
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos.</div>";
+                        return;
+                    }
+
+                    const traces = [];
+
+                    const clusterColors = {
+                        "-1": "gray",
+                        "0": "blue",
+                        "1": "pink",
+                        "2": "green",
+                        "3": "orange",
+                        "4": "purple",
+                        "5": "brown",
+                        "6": "black",
+                        "7": "cyan",
+                        "8": "magenta",
+                        "9": "yellow",
+                    };
+
+                    const centroids_1 = [-0.6, -1.06, -1.0, -0.57, 0.07, 0.6, 1.29, 1.81, 2.22, 3.22, 3.65, 3.53, 3.69, 3.77, 4.12, 4.83, 5.16, 5.22, 5.65, 5.53, 5.85, 6.13, 6.28, 6.76, 6.82, 6.63, 6.89, 6.9, 7.21, 7.76, 7.73, 7.87, 7.93, 7.87, 8.03, 8.45, 7.89, 7.46, 7.61, 8.1, 8.59, 9.41, 9.07, 8.95, 9.08, 9.21, 9.21, 9.33, 9.29, 9.47, 9.61, 9.87, 9.88, 9.88, 9.71, 9.67, 9.77, 9.97, 10.14, 10.24, 10.16, 9.89, 9.91, 10.02, 10.25, 10.52, 10.31, 10.38, 10.62, 10.78, 10.86, 11.02, 10.64, 10.8, 10.89, 11.07, 11.37, 11.62, 11.45, 11.33, 11.41, 11.61, 12.0, 12.18, 12.14, 12.0, 12.15, 12.08, 12.22, 12.43, 12.56, 12.62, 12.64, 12.25, 12.07, 12.17, 12.12, 12.22, 12.24, 12.1, 12.36, 12.91, 13.1, 13.09, 12.82, 12.65, 12.81, 13.17, 13.35, 13.23, 13.19, 13.41, 13.48, 13.49, 13.53, 13.43, 13.59, 13.76, 13.81, 13.64, 13.52, 13.33, 13.32, 13.51, 13.66, 13.68, 13.54, 13.64, 13.76, 14.19, 14.83, 15.63, 15.73, 15.73, 15.54, 15.0, 15.03, 14.95, 14.75, 14.65, 15.01, 15.14, 15.38, 15.34, 15.07, 15.16, 15.57, 15.21, 14.22, 13.11, 13.13, 15.21];
+                    const centroids0 = [-1.32, -1.76, -1.5, -0.85, -0.16, 0.3, 0.76, 1.03, 1.39, 2.2, 2.51, 2.44, 2.61, 2.75, 3.18, 3.85, 4.12, 4.23, 4.68, 4.55, 4.79, 4.96, 5.09, 5.67, 5.84, 5.58, 5.71, 5.59, 5.62, 6.06, 5.99, 6.06, 6.18, 6.11, 6.06, 6.41, 5.67, 5.08, 5.22, 5.77, 6.29, 7.28, 6.87, 6.69, 6.71, 6.8, 6.71, 6.84, 6.76, 7.07, 7.2, 7.39, 7.37, 7.37, 7.25, 7.27, 7.34, 7.47, 7.59, 7.7, 7.65, 7.36, 7.34, 7.43, 7.72, 7.91, 7.8, 7.69, 7.75, 7.92, 8.07, 8.18, 7.89, 7.97, 8.03, 8.25, 8.58, 8.72, 8.49, 8.4, 8.6, 8.89, 9.37, 9.45, 9.45, 9.25, 9.5, 9.49, 9.74, 9.86, 9.93, 9.8, 9.58, 9.01, 8.83, 8.92, 9.0, 9.18, 9.12, 8.91, 8.95, 9.36, 9.57, 9.77, 9.69, 9.59, 9.7, 9.98, 10.04, 10.05, 9.98, 10.27, 10.48, 10.69, 10.72, 10.68, 10.78, 11.02, 11.08, 11.03, 10.82, 10.68, 10.69, 10.85, 10.93, 10.91, 10.67, 10.61, 10.63, 10.98, 11.58, 12.43, 12.51, 12.5, 12.3, 11.68, 11.63, 11.49, 11.2, 11.16, 11.44, 11.51, 11.88, 12.01, 11.89, 12.06, 12.31, 11.87, 10.96, 9.93, 9.99, 12.0];
+                    const centroids1 = [-1.72, -2.08, -1.89, -1.19, 0.02, 1.4, 3.11, 4.56, 5.86, 7.62, 8.48, 8.61, 9.13, 9.68, 10.45, 11.78, 12.43, 12.71, 13.53, 13.8, 14.52, 15.09, 15.45, 16.16, 16.53, 16.46, 16.76, 16.74, 17.4, 17.98, 18.05, 18.35, 18.48, 18.63, 19.33, 19.91, 19.09, 18.6, 18.94, 19.87, 21.04, 22.64, 22.17, 22.17, 22.49, 22.64, 22.91, 23.17, 23.07, 23.29, 23.73, 24.02, 24.1, 23.99, 23.7, 23.73, 23.93, 24.07, 24.19, 24.06, 23.8, 23.72, 23.89, 24.08, 24.47, 24.77, 24.42, 24.96, 25.66, 25.86, 25.84, 25.92, 25.32, 25.89, 26.38, 26.65, 27.37, 27.79, 27.81, 27.75, 27.86, 27.93, 28.53, 28.78, 29.0, 29.15, 29.27, 29.34, 29.5, 29.51, 29.38, 29.55, 29.43, 29.22, 29.02, 28.91, 28.6, 28.73, 29.09, 29.01, 29.37, 29.89, 30.18, 30.24, 30.19, 30.03, 30.35, 30.77, 31.09, 31.07, 30.84, 31.0, 31.26, 31.51, 31.86, 32.16, 32.29, 32.49, 32.5, 32.09, 31.61, 31.28, 31.2, 31.73, 31.98, 32.07, 31.66, 31.82, 32.18, 32.98, 33.66, 34.71, 34.76, 35.04, 35.07, 34.64, 34.82, 34.92, 34.8, 34.86, 35.06, 35.04, 35.2, 35.24, 35.29, 35.48, 35.9, 35.54, 34.49, 33.52, 33.64, 35.67];
+                    const centroids2 = [];
+                    const centroids3 = [];
+                    const centroids4 = [];
+                    const centroids5 = [];
+                    const centroids6 = [];
+                    const centroids7 = [];
+                    const centroids8 = [];
+                    const centroids9 = [];
+                    
+                    response.features.forEach(feature => {
+                    
+                        const attrs = feature.attributes;
+                    
+                        const camposFechas = Object.keys(attrs)
+                            .filter(key => key.startsWith('D'))
+                            .sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+
+                        const fechas = camposFechas;
+
+                        const valoresOriginal = camposFechas.map(f => {
+                            const num = parseFloat(attrs[f]?.toString().replace(',', '.'));
+                            return isNaN(num) ? null : num;
+                        });
+
+                        const clustering = parseInt(attrs.CLUSTERING?.toString().replace(',', '.'));
+                        const colorCluster = clusterColors[clustering?.toString()] || 'black';
+
+                        traces.push({
+                            x: fechas,
+                            y: valoresOriginal,
+                            name: `${attrs.code_text} (Cluster ${clustering})`,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: {
+                                width: 3,
+                                color: "red"
+                            }
+                        });
+                    
+                        let centroidesSeleccionados = null;
+                    
+                        if (clustering === -1) centroidesSeleccionados = centroids_1;
+                        if (clustering === 0) centroidesSeleccionados = centroids0;
+                        if (clustering === 1) centroidesSeleccionados = centroids1;
+                        if (clustering === 2) centroidesSeleccionados = centroids2;
+                        if (clustering === 3) centroidesSeleccionados = centroids3;
+                        if (clustering === 4) centroidesSeleccionados = centroids4;
+                        if (clustering === 5) centroidesSeleccionados = centroids5;
+                        if (clustering === 6) centroidesSeleccionados = centroids6;
+                        if (clustering === 7) centroidesSeleccionados = centroids7;
+                        if (clustering === 8) centroidesSeleccionados = centroids8;
+                        if (clustering === 9) centroidesSeleccionados = centroids9;
+                    
+                        if (centroidesSeleccionados && centroidesSeleccionados.length > 0) {
+                            traces.push({
+                                x: fechas,
+                                y: centroidesSeleccionados,
+                                name: `Centroide Cluster ${clustering}`,
+                                type: 'scatter',
+                                mode: 'lines',
+                                line: {
+                                    dash: 'dot',
+                                    width: 4,
+                                    color: colorCluster
+                                },
+                                opacity: 0.7
+                            });
+                        }
+                    
+                    });
+
+                    const layout = {
+                        title: {
+                            text: 'Series temporales',
+                            x: 0.5
+                        },
+                        xaxis: { title: 'Tiempo (D)' },
+                        yaxis: { title: 'Desplazamiento (mm)' },
+                        hovermode: 'closest',
+                        legend: {
+                            orientation: 'h',
+                            x: 0.5,
+                            xanchor: 'center',
+                            y: 1.05,
+                            yanchor: 'bottom'
+                        }
+                    };
+
+                    Plotly.newPlot('grafico', traces, layout);
+                })
+                .catch(err => {
+                    document.body.innerHTML = "Error de conexión.";
+                });
+        }
+    </script>
+</body>
+</html>

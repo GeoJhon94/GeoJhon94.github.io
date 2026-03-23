@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #grafico { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="grafico"></div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get('id');
+
+        if (idParam) {
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/01_NON_FILTER_12D_0_INTER_SMOOTH_ARCOS_DSC/FeatureServer/0";
+            const ids = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
+            const whereClause = `code_text IN (${ids})`; 
+            const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(whereClause)}&outFields=*&f=pjson`;
+
+            fetch(queryUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.features || response.features.length === 0) {
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos.</div>";
+                        return;
+                    }
+
+                    const traces = [];
+
+                    const clusterColors = {
+                        "-1": "gray",
+                        "0": "blue",
+                        "1": "pink",
+                        "2": "green",
+                        "3": "orange",
+                        "4": "purple",
+                        "5": "brown",
+                        "6": "black",
+                        "7": "cyan",
+                        "8": "magenta",
+                        "9": "yellow",
+                    };
+
+                    const centroids_1 = [];
+                    const centroids0 = [-0.84, -1.1, -1.01, -0.65, -0.11, 0.39, 1.09, 1.26, 1.57, 2.22, 2.46, 2.39, 2.59, 2.58, 3.08, 3.47, 3.61, 3.65, 4.13, 3.92, 4.32, 4.48, 4.59, 5.1, 5.38, 5.11, 5.5, 5.46, 5.41, 5.72, 5.61, 5.58, 5.83, 5.66, 5.62, 5.91, 5.3, 4.71, 4.91, 5.39, 6.01, 6.91, 6.58, 6.41, 6.38, 6.44, 6.45, 6.69, 6.77, 7.03, 7.03, 7.12, 7.07, 7.14, 7.21, 7.26, 7.31, 7.53, 7.78, 8.03, 7.94, 7.59, 7.39, 7.54, 7.76, 8.18, 8.03, 7.98, 8.06, 8.08, 8.12, 8.45, 8.18, 8.18, 8.12, 8.13, 8.5, 8.88, 8.6, 8.52, 8.56, 8.81, 9.29, 9.38, 9.29, 9.2, 9.39, 9.26, 9.25, 9.36, 9.66, 9.85, 9.95, 9.46, 9.14, 9.25, 9.25, 9.3, 9.24, 9.14, 9.45, 10.07, 10.17, 10.12, 9.9, 9.7, 9.79, 10.11, 10.15, 10.15, 10.12, 10.48, 10.69, 10.82, 10.75, 10.53, 10.53, 10.78, 10.95, 10.81, 10.71, 10.54, 10.63, 10.77, 10.79, 10.7, 10.67, 10.91, 11.12, 11.48, 12.01, 12.68, 12.65, 12.79, 12.55, 11.96, 11.87, 11.51, 11.17, 11.29, 11.72, 12.07, 12.44, 12.31, 12.06, 12.13, 12.39, 12.08, 11.15, 9.99, 9.96, 12.06];
+                    const centroids1 = [-0.96, -1.68, -1.65, -0.99, 0.23, 1.58, 3.25, 4.87, 6.05, 7.85, 8.61, 8.7, 9.12, 9.69, 10.35, 11.72, 12.28, 12.56, 13.3, 13.59, 14.11, 14.86, 15.06, 15.84, 16.21, 16.33, 16.8, 17.18, 17.8, 18.71, 18.86, 19.26, 19.4, 19.51, 19.93, 20.56, 19.89, 19.59, 19.99, 20.77, 21.47, 22.73, 22.42, 22.42, 22.88, 23.17, 23.47, 23.85, 23.86, 24.02, 24.35, 24.79, 24.9, 24.87, 24.61, 24.69, 24.92, 25.29, 25.56, 25.68, 25.51, 25.37, 25.5, 25.64, 26.0, 26.4, 25.94, 26.53, 27.33, 27.62, 27.66, 27.76, 26.98, 27.53, 27.97, 28.15, 28.57, 28.87, 28.65, 28.59, 28.86, 29.13, 29.66, 30.04, 30.19, 30.31, 30.48, 30.53, 30.71, 31.04, 31.19, 31.52, 31.62, 31.39, 31.27, 31.35, 31.11, 31.16, 31.47, 31.46, 31.9, 32.48, 32.67, 32.48, 32.26, 32.29, 32.57, 32.96, 33.09, 32.9, 32.83, 33.31, 33.59, 33.73, 33.83, 33.9, 34.1, 34.43, 34.36, 34.23, 34.12, 33.95, 34.02, 34.59, 34.75, 34.84, 34.7, 34.95, 35.27, 35.98, 36.63, 37.26, 37.25, 37.44, 37.55, 37.29, 37.58, 37.56, 37.22, 36.91, 37.19, 37.25, 37.54, 37.73, 37.67, 37.69, 38.1, 37.82, 36.96, 36.28, 36.52, 38.33];
+                    const centroids2 = [0.39, -0.18, -0.33, -0.28, -0.33, -0.73, -0.86, -1.02, -1.41, -1.16, -1.55, -2.18, -2.42, -2.67, -2.53, -2.05, -1.92, -2.22, -2.53, -3.05, -2.84, -2.78, -2.63, -2.55, -3.05, -3.6, -3.54, -3.81, -3.65, -3.44, -3.65, -3.71, -3.74, -3.82, -3.65, -3.74, -4.21, -4.78, -4.88, -4.9, -4.76, -4.49, -4.88, -5.15, -5.11, -5.25, -5.3, -5.22, -5.53, -5.61, -5.63, -5.54, -5.39, -5.24, -5.34, -5.47, -5.42, -5.59, -5.74, -5.95, -6.04, -6.33, -6.18, -6.27, -6.33, -6.44, -6.66, -6.83, -6.69, -6.46, -6.4, -6.56, -7.04, -7.43, -7.41, -6.9, -6.59, -6.48, -6.67, -6.97, -6.86, -6.65, -6.53, -6.79, -7.07, -7.53, -7.13, -7.0, -6.78, -6.74, -6.95, -7.27, -7.32, -7.64, -7.69, -7.33, -7.31, -7.17, -7.67, -8.19, -8.32, -8.03, -8.12, -8.0, -8.35, -8.61, -8.5, -8.19, -8.02, -8.03, -8.02, -8.18, -8.45, -8.7, -8.69, -8.91, -8.51, -8.45, -8.38, -8.65, -8.58, -8.89, -9.19, -9.35, -9.52, -9.77, -9.85, -9.92, -9.95, -9.55, -9.17, -8.48, -8.43, -8.58, -8.64, -9.16, -9.18, -9.02, -9.1, -9.38, -9.06, -9.07, -8.99, -9.21, -9.72, -9.54, -8.89, -9.23, -10.68, -12.58, -12.71, -9.47];
+                    const centroids3 = [-1.91, -2.23, -1.93, -1.19, -0.19, 0.74, 1.75, 2.6, 3.38, 4.74, 5.63, 5.84, 6.27, 6.49, 6.85, 7.67, 8.27, 8.51, 9.18, 9.14, 9.34, 9.44, 9.64, 10.2, 10.47, 10.41, 10.6, 10.52, 10.81, 11.45, 11.48, 11.57, 11.68, 11.75, 11.99, 12.85, 12.0, 11.31, 11.38, 12.08, 12.73, 14.03, 13.59, 13.56, 13.85, 14.05, 13.83, 13.76, 13.61, 13.99, 14.34, 14.72, 14.67, 14.5, 14.08, 14.04, 14.04, 14.28, 14.47, 14.55, 14.51, 14.33, 14.44, 14.72, 15.25, 15.56, 15.48, 15.34, 15.44, 15.65, 15.86, 16.14, 16.07, 16.42, 16.74, 17.11, 17.43, 17.61, 17.43, 17.19, 17.22, 17.44, 17.87, 18.09, 18.24, 18.13, 18.24, 18.22, 18.37, 18.55, 18.54, 18.47, 18.33, 17.89, 17.72, 17.73, 17.7, 18.09, 18.44, 18.38, 18.61, 19.06, 19.5, 19.65, 19.41, 19.13, 19.28, 19.75, 20.18, 20.19, 20.11, 20.32, 20.44, 20.55, 20.58, 20.64, 20.66, 20.83, 20.76, 20.63, 20.35, 20.28, 20.23, 20.55, 20.77, 20.93, 20.68, 20.73, 20.85, 21.32, 21.91, 22.82, 22.97, 22.94, 22.78, 22.34, 22.32, 22.41, 22.28, 22.18, 22.39, 22.44, 22.63, 22.74, 22.75, 22.78, 23.09, 22.7, 21.75, 20.95, 21.13, 22.99];
+                    const centroids4 = [0.07, -0.45, -0.35, 0.06, 0.35, 0.25, -0.01, -0.28, -0.39, 0.12, 0.27, -0.15, -0.32, -0.43, -0.29, 0.23, 0.35, 0.27, 0.53, 0.29, 0.55, 0.77, 0.9, 1.3, 1.05, 0.64, 0.62, 0.47, 0.71, 1.14, 1.05, 1.19, 1.08, 0.86, 0.76, 0.81, 0.47, 0.26, 0.35, 0.74, 1.05, 1.42, 1.08, 0.82, 0.61, 0.67, 0.61, 0.67, 0.65, 0.81, 0.81, 0.96, 0.93, 0.97, 0.93, 0.8, 0.97, 1.06, 1.1, 1.18, 1.15, 0.75, 0.73, 0.66, 0.63, 0.7, 0.59, 0.58, 0.57, 0.72, 0.78, 0.73, 0.36, 0.36, 0.09, 0.12, 0.32, 0.45, 0.43, 0.49, 0.64, 0.75, 1.14, 1.3, 1.14, 0.81, 0.94, 0.77, 1.1, 1.31, 1.45, 1.26, 1.06, 0.5, 0.35, 0.41, 0.48, 0.41, 0.1, -0.21, -0.13, 0.37, 0.53, 0.73, 0.62, 0.56, 0.7, 0.87, 0.86, 0.64, 0.58, 0.65, 0.68, 0.72, 0.9, 0.76, 1.05, 1.1, 1.29, 1.13, 0.94, 0.65, 0.65, 0.6, 0.88, 0.88, 0.58, 0.36, 0.23, 0.44, 1.3, 2.42, 2.68, 2.52, 2.06, 1.12, 1.08, 0.9, 0.73, 0.77, 1.19, 1.21, 1.57, 1.5, 1.06, 1.37, 1.76, 1.22, 0.28, -1.04, -1.22, 0.74];
+                    const centroids5 = [];
+                    const centroids6 = [];
+                    const centroids7 = [];
+                    const centroids8 = [];
+                    const centroids9 = [];
+                    
+                    response.features.forEach(feature => {
+                    
+                        const attrs = feature.attributes;
+                    
+                        const camposFechas = Object.keys(attrs)
+                            .filter(key => key.startsWith('D'))
+                            .sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+
+                        const fechas = camposFechas;
+
+                        const valoresOriginal = camposFechas.map(f => {
+                            const num = parseFloat(attrs[f]?.toString().replace(',', '.'));
+                            return isNaN(num) ? null : num;
+                        });
+
+                        const clustering = parseInt(attrs.CLUSTERING?.toString().replace(',', '.'));
+                        const colorCluster = clusterColors[clustering?.toString()] || 'black';
+
+                        traces.push({
+                            x: fechas,
+                            y: valoresOriginal,
+                            name: `${attrs.code_text} (Cluster ${clustering})`,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: {
+                                width: 3,
+                                color: "red"
+                            }
+                        });
+                    
+                        let centroidesSeleccionados = null;
+                    
+                        if (clustering === -1) centroidesSeleccionados = centroids_1;
+                        if (clustering === 0) centroidesSeleccionados = centroids0;
+                        if (clustering === 1) centroidesSeleccionados = centroids1;
+                        if (clustering === 2) centroidesSeleccionados = centroids2;
+                        if (clustering === 3) centroidesSeleccionados = centroids3;
+                        if (clustering === 4) centroidesSeleccionados = centroids4;
+                        if (clustering === 5) centroidesSeleccionados = centroids5;
+                        if (clustering === 6) centroidesSeleccionados = centroids6;
+                        if (clustering === 7) centroidesSeleccionados = centroids7;
+                        if (clustering === 8) centroidesSeleccionados = centroids8;
+                        if (clustering === 9) centroidesSeleccionados = centroids9;
+                    
+                        if (centroidesSeleccionados && centroidesSeleccionados.length > 0) {
+                            traces.push({
+                                x: fechas,
+                                y: centroidesSeleccionados,
+                                name: `Centroide Cluster ${clustering}`,
+                                type: 'scatter',
+                                mode: 'lines',
+                                line: {
+                                    dash: 'dot',
+                                    width: 4,
+                                    color: colorCluster
+                                },
+                                opacity: 0.7
+                            });
+                        }
+                    
+                    });
+
+                    const layout = {
+                        title: {
+                            text: 'Series temporales',
+                            x: 0.5
+                        },
+                        xaxis: { title: 'Tiempo (D)' },
+                        yaxis: { title: 'Desplazamiento (mm)' },
+                        hovermode: 'closest',
+                        legend: {
+                            orientation: 'h',
+                            x: 0.5,
+                            xanchor: 'center',
+                            y: 1.05,
+                            yanchor: 'bottom'
+                        }
+                    };
+
+                    Plotly.newPlot('grafico', traces, layout);
+                })
+                .catch(err => {
+                    document.body.innerHTML = "Error de conexión.";
+                });
+        }
+    </script>
+</body>
+</html>

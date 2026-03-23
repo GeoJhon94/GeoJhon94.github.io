@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #grafico { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="grafico"></div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get('id');
+
+        if (idParam) {
+            const serviceURL = "https://services-eu1.arcgis.com/WCEIifo5j3luTcRc/arcgis/rest/services/01_NON_FILTER_12D_1_INTER_SMOOTH_LORCA_DSC/FeatureServer/0";
+            const ids = idParam.split(',').map(i => `'${i.trim()}'`).join(',');
+            const whereClause = `code_text IN (${ids})`; 
+            const queryUrl = `${serviceURL}/query?where=${encodeURIComponent(whereClause)}&outFields=*&f=pjson`;
+
+            fetch(queryUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.features || response.features.length === 0) {
+                        document.body.innerHTML = "<div style='padding:20px;'>No se encontraron datos.</div>";
+                        return;
+                    }
+
+                    const traces = [];
+
+                    const clusterColors = {
+                        "-1": "gray",
+                        "0": "blue",
+                        "1": "pink",
+                        "2": "green",
+                        "3": "orange",
+                        "4": "purple",
+                        "5": "brown",
+                        "6": "black",
+                        "7": "cyan",
+                        "8": "magenta",
+                        "9": "yellow",
+                    };
+
+                    const centroids_1 = [0.21, -0.75, -1.74, -2.75, -3.8, -4.76, -5.79, -6.75, -7.61, -8.62, -9.61, -10.6, -11.68, -12.62, -13.58, -14.5, -15.48, -16.5, -17.56, -18.58, -19.6, -20.56, -21.56, -22.45, -23.33, -24.17, -25.06, -25.94, -26.82, -27.62, -28.51, -29.38, -30.34, -31.3, -32.17, -32.99, -33.84, -34.73, -35.78, -36.81, -37.76, -38.67, -39.49, -40.34, -41.27, -42.13, -43.01, -43.93, -44.88, -45.8, -46.71, -47.59, -48.42, -49.31, -50.17, -50.95, -51.79, -52.62, -53.49, -54.33, -55.17, -55.96, -56.75, -57.52, -58.37, -59.15, -60.02, -60.94, -61.82, -62.64, -63.47, -64.21, -64.97, -65.82, -66.67, -67.55, -68.49, -69.37, -70.16, -71.0, -71.78, -72.61, -73.45, -74.26, -75.02, -75.83, -76.64, -77.42, -78.18, -78.87, -79.52, -80.19, -80.99, -81.75, -82.53, -83.3, -84.11, -84.98, -85.82, -86.66, -87.46, -88.22, -89.03, -89.87, -90.59, -91.4, -92.06, -92.77, -93.55, -94.33, -95.12, -95.97, -96.72, -97.5, -98.27, -98.96, -99.54, -100.15, -100.77, -101.48, -102.25, -103.0, -103.7, -104.35, -104.98, -105.76, -106.54, -107.2, -107.9, -108.5, -109.19, -110.08, -110.87, -111.55, -112.15, -112.68, -113.34, -114.09, -114.79, -115.54, -116.08, -116.79, -117.47, -118.22, -118.87, -119.53, -120.13, -120.79, -121.25, -121.74, -122.26, -122.84];
+                    const centroids0 = [-0.13, -1.09, -2.26, -3.54, -4.82, -6.07, -7.38, -8.6, -9.63, -10.8, -11.92, -13.13, -14.45, -15.65, -16.77, -17.88, -19.08, -20.26, -21.46, -22.72, -23.94, -25.05, -26.29, -27.33, -28.49, -29.58, -30.73, -31.75, -32.79, -33.72, -34.91, -36.0, -37.29, -38.57, -39.73, -40.7, -41.71, -42.73, -43.99, -45.29, -46.57, -47.71, -48.76, -49.87, -51.06, -52.1, -53.2, -54.33, -55.48, -56.57, -57.64, -58.68, -59.78, -60.98, -62.18, -63.13, -64.15, -65.16, -66.2, -67.24, -68.3, -69.21, -70.2, -71.17, -72.29, -73.39, -74.59, -75.81, -76.93, -77.98, -79.02, -79.92, -81.02, -82.19, -83.21, -84.3, -85.43, -86.48, -87.66, -88.66, -89.56, -90.54, -91.59, -92.56, -93.63, -94.62, -95.63, -96.6, -97.55, -98.41, -99.32, -100.25, -101.3, -102.32, -103.27, -104.29, -105.35, -106.47, -107.6, -108.68, -109.72, -110.8, -111.89, -112.93, -113.88, -114.95, -115.89, -116.81, -117.77, -118.68, -119.6, -120.64, -121.51, -122.43, -123.35, -124.26, -125.09, -125.93, -126.82, -127.83, -128.84, -129.85, -130.79, -131.63, -132.54, -133.62, -134.7, -135.63, -136.6, -137.5, -138.4, -139.54, -140.65, -141.6, -142.48, -143.34, -144.18, -145.14, -146.02, -146.98, -147.65, -148.6, -149.48, -150.41, -151.25, -152.23, -152.92, -153.82, -154.47, -155.18, -155.96, -156.86];
+                    const centroids1 = [0.09, -0.25, -0.69, -1.19, -1.68, -2.06, -2.51, -2.89, -3.16, -3.59, -3.94, -4.33, -4.82, -5.17, -5.55, -5.88, -6.27, -6.7, -7.16, -7.59, -8.02, -8.4, -8.84, -9.21, -9.56, -9.91, -10.3, -10.68, -11.05, -11.37, -11.73, -12.08, -12.52, -12.95, -13.3, -13.61, -13.94, -14.29, -14.81, -15.28, -15.71, -16.1, -16.39, -16.72, -17.11, -17.43, -17.74, -18.11, -18.5, -18.89, -19.28, -19.71, -20.06, -20.49, -20.89, -21.17, -21.5, -21.86, -22.25, -22.64, -23.02, -23.36, -23.67, -23.96, -24.34, -24.67, -25.09, -25.57, -25.99, -26.3, -26.61, -26.83, -27.09, -27.47, -27.83, -28.18, -28.61, -29.01, -29.33, -29.68, -29.99, -30.34, -30.73, -31.09, -31.41, -31.74, -32.1, -32.45, -32.81, -33.08, -33.34, -33.57, -33.9, -34.21, -34.55, -34.92, -35.32, -35.79, -36.15, -36.58, -36.89, -37.19, -37.57, -37.98, -38.26, -38.66, -38.86, -39.09, -39.43, -39.79, -40.16, -40.57, -40.89, -41.23, -41.58, -41.9, -42.11, -42.36, -42.62, -42.96, -43.35, -43.75, -44.07, -44.34, -44.6, -45.02, -45.43, -45.73, -46.08, -46.31, -46.63, -47.14, -47.54, -47.82, -48.02, -48.15, -48.41, -48.78, -49.1, -49.48, -49.63, -49.97, -50.27, -50.66, -50.96, -51.31, -51.58, -51.93, -52.05, -52.2, -52.38, -52.64];
+                    const centroids2 = [];
+                    const centroids3 = [];
+                    const centroids4 = [];
+                    const centroids5 = [];
+                    const centroids6 = [];
+                    const centroids7 = [];
+                    const centroids8 = [];
+                    const centroids9 = [];
+                    
+                    response.features.forEach(feature => {
+                    
+                        const attrs = feature.attributes;
+                    
+                        const camposFechas = Object.keys(attrs)
+                            .filter(key => key.startsWith('D'))
+                            .sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+
+                        const fechas = camposFechas;
+
+                        const valoresOriginal = camposFechas.map(f => {
+                            const num = parseFloat(attrs[f]?.toString().replace(',', '.'));
+                            return isNaN(num) ? null : num;
+                        });
+
+                        const clustering = parseInt(attrs.CLUSTERING?.toString().replace(',', '.'));
+                        const colorCluster = clusterColors[clustering?.toString()] || 'black';
+
+                        traces.push({
+                            x: fechas,
+                            y: valoresOriginal,
+                            name: `${attrs.code_text} (Cluster ${clustering})`,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: {
+                                width: 3,
+                                color: "red"
+                            }
+                        });
+                    
+                        let centroidesSeleccionados = null;
+                    
+                        if (clustering === -1) centroidesSeleccionados = centroids_1;
+                        if (clustering === 0) centroidesSeleccionados = centroids0;
+                        if (clustering === 1) centroidesSeleccionados = centroids1;
+                        if (clustering === 2) centroidesSeleccionados = centroids2;
+                        if (clustering === 3) centroidesSeleccionados = centroids3;
+                        if (clustering === 4) centroidesSeleccionados = centroids4;
+                        if (clustering === 5) centroidesSeleccionados = centroids5;
+                        if (clustering === 6) centroidesSeleccionados = centroids6;
+                        if (clustering === 7) centroidesSeleccionados = centroids7;
+                        if (clustering === 8) centroidesSeleccionados = centroids8;
+                        if (clustering === 9) centroidesSeleccionados = centroids9;
+                    
+                        if (centroidesSeleccionados && centroidesSeleccionados.length > 0) {
+                            traces.push({
+                                x: fechas,
+                                y: centroidesSeleccionados,
+                                name: `Centroide Cluster ${clustering}`,
+                                type: 'scatter',
+                                mode: 'lines',
+                                line: {
+                                    dash: 'dot',
+                                    width: 4,
+                                    color: colorCluster
+                                },
+                                opacity: 0.7
+                            });
+                        }
+                    
+                    });
+
+                    const layout = {
+                        title: {
+                            text: 'Series temporales',
+                            x: 0.5
+                        },
+                        xaxis: { title: 'Tiempo (D)' },
+                        yaxis: { title: 'Desplazamiento (mm)' },
+                        hovermode: 'closest',
+                        legend: {
+                            orientation: 'h',
+                            x: 0.5,
+                            xanchor: 'center',
+                            y: 1.05,
+                            yanchor: 'bottom'
+                        }
+                    };
+
+                    Plotly.newPlot('grafico', traces, layout);
+                })
+                .catch(err => {
+                    document.body.innerHTML = "Error de conexión.";
+                });
+        }
+    </script>
+</body>
+</html>
